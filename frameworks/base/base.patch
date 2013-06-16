@@ -1,0 +1,97 @@
+diff --git a/Android.mk b/Android.mk
+index 4d567df..9abd83d 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -208,6 +208,7 @@ LOCAL_SRC_FILES += \
+ 	telephony/java/com/android/internal/telephony/ISms.aidl \
+ 	telephony/java/com/android/internal/telephony/IWapPushManager.aidl \
+ 	wifi/java/android/net/wifi/IWifiManager.aidl \
++	droidcon/java/android/droidcon/IDroidconManager.aidl \
+ 	wifi/java/android/net/wifi/p2p/IWifiP2pManager.aidl \
+ 	telephony/java/com/android/internal/telephony/IExtendedNetworkService.aidl \
+ 	voip/java/android/net/sip/ISipSession.aidl \
+diff --git a/core/java/android/app/ContextImpl.java b/core/java/android/app/ContextImpl.java
+index b902550..b835a5f 100644
+--- a/core/java/android/app/ContextImpl.java
++++ b/core/java/android/app/ContextImpl.java
+@@ -67,6 +67,8 @@ import android.net.nsd.INsdManager;
+ import android.net.nsd.NsdManager;
+ import android.net.wifi.IWifiManager;
+ import android.net.wifi.WifiManager;
++import android.droidcon.IDroidconManager;
++import android.droidcon.DroidconManager;
+ import android.net.wifi.p2p.IWifiP2pManager;
+ import android.net.wifi.p2p.WifiP2pManager;
+ import android.nfc.NfcManager;
+@@ -485,6 +487,13 @@ class ContextImpl extends Context {
+                 public Object getService(ContextImpl ctx) {
+                     return WindowManagerImpl.getDefault(ctx.mPackageInfo.mCompatibilityInfo);
+                 }});
++
++        registerService(DROIDCON_SERVICE, new ServiceFetcher() {
++                public Object createService(ContextImpl ctx) {
++                    IBinder b = ServiceManager.getService(DROIDCON_SERVICE);
++                    IDroidconManager service = IDroidconManager.Stub.asInterface(b);
++                    return new DroidconManager(service);
++                }});
+     }
+ 
+     static ContextImpl getImpl(Context context) {
+diff --git a/core/java/android/content/Context.java b/core/java/android/content/Context.java
+index ffff9be..e8bfacf 100644
+--- a/core/java/android/content/Context.java
++++ b/core/java/android/content/Context.java
+@@ -1766,6 +1766,8 @@ public abstract class Context {
+      */
+     public static final String WIFI_SERVICE = "wifi";
+ 
++    public static final String DROIDCON_SERVICE = "droidcon";
++
+     /**
+      * Use with {@link #getSystemService} to retrieve a {@link
+      * android.net.wifi.p2p.WifiP2pManager} for handling management of
+diff --git a/core/res/AndroidManifest.xml b/core/res/AndroidManifest.xml
+index 6546fed..ac0f778 100644
+--- a/core/res/AndroidManifest.xml
++++ b/core/res/AndroidManifest.xml
+@@ -465,6 +465,14 @@
+         android:description="@string/permdesc_accessWifiState"
+         android:label="@string/permlab_accessWifiState" />
+ 
++
++
++    <permission android:name="android.permission.DROIDCON_ACCESS"
++        android:permissionGroup="android.permission-group.HARDWARE_CONTROLS"
++        android:protectionLevel="dangerous" />
++
++
++
+     <!-- @hide -->
+     <permission android:name="android.permission.ACCESS_WIMAX_STATE"
+         android:permissionGroup="android.permission-group.NETWORK"
+diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
+index 9dd4a91..29ec741 100644
+--- a/services/java/com/android/server/SystemServer.java
++++ b/services/java/com/android/server/SystemServer.java
+@@ -140,6 +140,7 @@ class ServerThread extends Thread {
+         NetworkTimeUpdateService networkTimeUpdater = null;
+         CommonTimeManagementService commonTimeMgmtService = null;
+         InputManagerService inputManager = null;
++        DroidconService droidconService = null;
+ 
+         // Critical services...
+         try {
+@@ -653,6 +654,13 @@ class ServerThread extends Thread {
+                     reportWtf("starting DreamManagerService", e);
+                 }
+             }
++           try {
++                Slog.i(TAG, "Droidcon Service");
++                droidconService = new DroidconService(context);
++                ServiceManager.addService(Context.DROIDCON_SERVICE, droidconService);
++            } catch (Throwable e) {
++                reportWtf("starting Droidcon Service", e);
++            }
+         }
+ 
+         // Before things start rolling, be sure we have decided whether

@@ -1,0 +1,12 @@
+diff --git a/core/pathmap.mk b/core/pathmap.mk
+index 91a7fd4..6988b8d 100644
+--- a/core/pathmap.mk
++++ b/core/pathmap.mk
+@@ -101,6 +101,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
+ 	    keystore \
+ 	    icu4j \
+ 	    voip \
++	    droidcon \
+ 	 )
+ 
+ #
